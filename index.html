@@ -37,6 +37,20 @@
     .tri{width:0;height:0;border-left:34px solid transparent;border-right:34px solid transparent;border-bottom:58px solid #000}
     .cir{width:58px;height:58px;border-radius:50%;background:#ff1f1f;border:3px solid #111}
 
+    /* === NEW: Game 1 Pfeil-Buttons (Touch-Fallback) === */
+    .g1Arrows{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .g1ArrowBtn{
+      border:3px solid #111;background:#fff;border-radius:18px;
+      padding:14px 18px;font-weight:1000;cursor:pointer;
+      box-shadow:0 10px 22px rgba(0,0,0,.10);
+      font-size:22px;
+      min-width:170px;
+    }
+    .g1ArrowBtn:active{transform:translateY(1px)}
+    .g1ArrowBtn.left{ }
+    .g1ArrowBtn.right{ }
+    .g1ArrowHint{font-weight:900;opacity:.8;text-align:center}
+
     /* ===== Game 2 layout ===== */
     .wrap2{display:grid;grid-template-columns:1fr 1.3fr;gap:18px;align-items:stretch}
     .bankTitle{font-weight:1000;margin:0 0 10px 0}
@@ -74,6 +88,7 @@
       .zone{min-height:220px}
       .panel{min-height:auto}
       .grid2{grid-template-columns:1fr}
+      .g1ArrowBtn{min-width:46vw}
     }
   </style>
 </head>
@@ -121,6 +136,14 @@
         <div class="card" id="g1_card" role="button" tabindex="0" aria-label="Wortkarte">
           <div class="word" id="g1_word">SUPPE</div>
         </div>
+
+        <!-- NEW: Pfeil-Buttons als Touch-Fallback (Drag bleibt möglich) -->
+        <div class="g1Arrows" aria-label="Auswahlbuttons">
+          <button class="g1ArrowBtn left" id="g1_btnN">⬅️ Nomen</button>
+          <button class="g1ArrowBtn right" id="g1_btnV">Verb ➡️</button>
+        </div>
+        <div class="g1ArrowHint">Du kannst ziehen ODER tippen.</div>
+
         <div class="fb" id="g1_fb"></div>
       </div>
 
@@ -145,10 +168,7 @@
       </div>
 
       <div class="panel">
-        <div
-          class="sentenceBox"
-          style="margin-bottom:12px"
-        >
+        <div class="sentenceBox" style="margin-bottom:12px">
           <div class="sentenceText" id="g2_targetText">Zieh die 3 Karten in die Felder.</div>
         </div>
 
@@ -241,6 +261,8 @@
       dropV: $("g1_dropV"),
       okEl: $("g1_ok"),
       badEl: $("g1_bad"),
+      btnN: $("g1_btnN"),
+      btnV: $("g1_btnV"),
       pool: [],
       current: null,
       ok: 0,
@@ -277,12 +299,17 @@
     }
 
     function game1Grade(choice){
+      if(!g1.current) return;
       const right = choice === g1.current.type;
       if(right){ g1.ok++; game1SetFB("RICHTIG ✅","good"); }
       else{ g1.bad++; game1SetFB("FALSCH ❌","bad"); }
       game1UpdateScore();
       setTimeout(game1Next, 650);
     }
+
+    // NEW: Pfeil-Buttons (Touch-Fallback)
+    g1.btnN.addEventListener("click", ()=>game1Grade("n"));
+    g1.btnV.addEventListener("click", ()=>game1Grade("v"));
 
     const isIn = (x,y,r)=>x>=r.left && x<=r.right && y>=r.top && y<=r.bottom;
 
@@ -457,7 +484,7 @@
     function game2Start(){
       g2.ok=0; g2.bad=0;
       g2UpdateScore();
-      g2.remaining = shuffle([...SENTENCES]); // jede Runde genau einmal
+      g2.remaining = shuffle([...SENTENCES]);
       g2PickNext();
     }
 
@@ -477,7 +504,7 @@
     });
 
     function g2GetSlots(){
-      return g2.slots.map(s=>s.firstElementChild ? s.firstElementChild.dataset.text : null);
+      return g2.slots.map(s => s.firstElementChild ? s.firstElementChild.dataset.text : null);
     }
 
     function g2Check(){
@@ -491,7 +518,6 @@
 
     g2.checkBtn.addEventListener("click", g2Check);
     g2.nextBtn.addEventListener("click", ()=>{ g2ClearToBank(); g2PickNext(); });
-
   </script>
 </body>
 </html>
