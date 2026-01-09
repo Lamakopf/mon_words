@@ -4,34 +4,520 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wortarten-Spiele</title>
-  <link rel="stylesheet" href="shared.css">
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;min-height:100svh;display:grid;place-items:center;background:#f4f6fb;color:#111}
+    .screen{width:min(1100px,96vw);display:none;gap:18px}
+    .screen.active{display:grid}
+    .panel{border:3px solid #111;background:#fff;border-radius:22px;min-height:320px;padding:16px;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+    .topbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .title{font-weight:1000;font-size:22px}
+    .btn{
+      border:3px solid #111;background:#fff;border-radius:14px;
+      padding:12px 16px;font-weight:1000;cursor:pointer;
+      box-shadow:0 10px 22px rgba(0,0,0,.10);
+      font-size:18px;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btnBig{font-size:22px;padding:16px 18px;border-radius:18px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .hint{font-weight:900;opacity:.85}
+    .score{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;font-weight:900}
+    .badge{background:#fff;border:3px solid #111;border-radius:999px;padding:8px 12px;box-shadow:0 10px 26px rgba(0,0,0,.10);min-width:140px;text-align:center}
+    .fb{font-weight:1000;min-height:30px;font-size:22px;text-align:center}
+    .good{color:#0f7a2a}
+    .bad{color:#b91c1c}
+
+    /* ===== Game 1 layout ===== */
+    .wrap1{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:18px;align-items:stretch}
+    .zone{border:3px solid #111;background:#fff;border-radius:22px;min-height:320px;display:grid;place-items:center;padding:16px;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+    .zone.dragover{outline:5px solid #2563eb;outline-offset:2px}
+    .mid1{display:grid;place-items:center;gap:12px}
+    .card{background:#fff;color:#0b1220;border-radius:22px;box-shadow:0 18px 50px rgba(0,0,0,.18);padding:24px 28px;min-width:min(380px,92vw);text-align:center;user-select:none;touch-action:none;border:3px solid #111}
+    .word{font-size:clamp(30px,5vw,48px);font-weight:1000;letter-spacing:.8px;text-transform:uppercase}
+    .tri{width:0;height:0;border-left:34px solid transparent;border-right:34px solid transparent;border-bottom:58px solid #000}
+    .cir{width:58px;height:58px;border-radius:50%;background:#ff1f1f;border:3px solid #111}
+
+    /* === NEW: Game 1 Pfeil-Buttons (Touch-Fallback) === */
+    .g1Arrows{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .g1ArrowBtn{
+      border:3px solid #111;background:#fff;border-radius:18px;
+      padding:14px 18px;font-weight:1000;cursor:pointer;
+      box-shadow:0 10px 22px rgba(0,0,0,.10);
+      font-size:22px;
+      min-width:170px;
+    }
+    .g1ArrowBtn:active{transform:translateY(1px)}
+    .g1ArrowBtn.left{ }
+    .g1ArrowBtn.right{ }
+    .g1ArrowHint{font-weight:900;opacity:.8;text-align:center}
+
+    /* ===== Game 2 layout ===== */
+    .wrap2{display:grid;grid-template-columns:1fr 1.3fr;gap:18px;align-items:stretch}
+    .bankTitle{font-weight:1000;margin:0 0 10px 0}
+    .tokens{display:flex;flex-direction:column;gap:10px}
+    .token{
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      border:3px solid #111;border-radius:18px;padding:12px 10px;
+      background:#fff;user-select:none;touch-action:none;
+      box-shadow:0 10px 22px rgba(0,0,0,.10);
+      font-weight:1000;font-size:22px;cursor:grab;
+    }
+    .token:active{cursor:grabbing}
+    .sym{flex:0 0 auto}
+    .triBlack{width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:28px solid #000}
+    .triBlue{width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:28px solid #1d4ed8}
+    .cirRed{width:28px;height:28px;border-radius:50%;background:#ff1f1f;border:3px solid #111}
+    .slots{display:grid;grid-template-columns:1fr;gap:12px}
+    .slot{
+      border:3px dashed #111;border-radius:18px;min-height:64px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:1000;background:#fff;
+    }
+    .slot.dragover{outline:5px solid #2563eb;outline-offset:2px;background:#eef2ff}
+    .sentenceBox{
+      border:3px solid #111;border-radius:18px;background:#fff;
+      padding:12px;text-align:center;font-weight:1000;
+      box-shadow:0 10px 22px rgba(0,0,0,.08);
+    }
+    .sentenceText{font-size:20px}
+    .btnRow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+    @media (max-width:900px){
+      .wrap1{grid-template-columns:1fr}
+      .wrap2{grid-template-columns:1fr}
+      .zone{min-height:220px}
+      .panel{min-height:auto}
+      .grid2{grid-template-columns:1fr}
+      .g1ArrowBtn{min-width:46vw}
+    }
+  </style>
 </head>
+
 <body>
-  <div class="page">
+
+  <!-- START -->
+  <div class="screen active" id="screenStart">
     <div class="panel">
       <div class="topbar">
         <div class="title">Wortarten-Spiele</div>
       </div>
-
       <div style="height:14px"></div>
-
       <div class="grid2">
         <div class="panel" style="min-height:auto">
           <div class="title">Spiel 1</div>
-          <div class="hint">Nomen oder Verb</div>
+          <div class="hint">Nomen oder Verb ziehen</div>
           <div style="height:12px"></div>
-          <a class="btn btnBig" href="game1-nomen-verb.html">▶️ Start</a>
+          <button class="btn btnBig" id="goGame1">▶️ Spiel 1 starten</button>
         </div>
-
         <div class="panel" style="min-height:auto">
           <div class="title">Spiel 2</div>
-          <div class="hint">Satzbau (Artikel – Nomen – Verb)</div>
+          <div class="hint">Sätze bauen (Artikel – Nomen – Verb)</div>
           <div style="height:12px"></div>
-          <a class="btn btnBig" href="game2-satzbau.html">▶️ Start</a>
+          <button class="btn btnBig" id="goGame2">▶️ Spiel 2 starten</button>
         </div>
       </div>
-
     </div>
   </div>
+
+  <!-- GAME 1 -->
+  <div class="screen" id="screenGame1">
+    <div class="topbar">
+      <button class="btn btnBig" id="home1">🏠 Startseite</button>
+      <div class="score">
+        <div class="badge">✅ Richtig: <span id="g1_ok">0</span></div>
+        <div class="badge">❌ Falsch: <span id="g1_bad">0</span></div>
+      </div>
+    </div>
+
+    <div class="wrap1">
+      <div class="zone" id="g1_dropN" aria-label="Nomen"><div class="tri" aria-hidden="true"></div></div>
+
+      <div class="mid1">
+        <div class="card" id="g1_card" role="button" tabindex="0" aria-label="Wortkarte">
+          <div class="word" id="g1_word">SUPPE</div>
+        </div>
+
+        <!-- NEW: Pfeil-Buttons als Touch-Fallback (Drag bleibt möglich) -->
+        <div class="g1Arrows" aria-label="Auswahlbuttons">
+          <button class="g1ArrowBtn left" id="g1_btnN">⬅️ Nomen</button>
+          <button class="g1ArrowBtn right" id="g1_btnV">Verb ➡️</button>
+        </div>
+        <div class="g1ArrowHint">Du kannst ziehen ODER tippen.</div>
+
+        <div class="fb" id="g1_fb"></div>
+      </div>
+
+      <div class="zone" id="g1_dropV" aria-label="Verb"><div class="cir" aria-hidden="true"></div></div>
+    </div>
+  </div>
+
+  <!-- GAME 2 -->
+  <div class="screen" id="screenGame2">
+    <div class="topbar">
+      <button class="btn btnBig" id="home2">🏠 Startseite</button>
+      <div class="score">
+        <div class="badge">✅ Richtig: <span id="g2_ok">0</span></div>
+        <div class="badge">❌ Falsch: <span id="g2_bad">0</span></div>
+      </div>
+    </div>
+
+    <div class="wrap2">
+      <div class="panel">
+        <h2 class="bankTitle">Wortkarten</h2>
+        <div class="tokens" id="g2_bank"></div>
+      </div>
+
+      <div class="panel">
+        <div class="sentenceBox" style="margin-bottom:12px">
+          <div class="sentenceText" id="g2_targetText">Zieh die 3 Karten in die Felder.</div>
+        </div>
+
+        <div class="slots">
+          <div class="slot" id="g2_slot0"></div>
+          <div class="slot" id="g2_slot1"></div>
+          <div class="slot" id="g2_slot2"></div>
+        </div>
+
+        <div style="height:14px"></div>
+
+        <div class="btnRow">
+          <button class="btn" id="g2_checkBtn">✅ Prüfen</button>
+          <button class="btn" id="g2_nextBtn">➡️ Nächster Satz</button>
+        </div>
+
+        <div style="height:10px"></div>
+        <div class="fb" id="g2_fb"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div class="screen" id="screenDone">
+    <div class="panel">
+      <div class="title" id="doneTitle">Fertig!</div>
+      <div style="height:12px"></div>
+      <div class="hint" id="doneText">Du hast alles geschafft.</div>
+      <div style="height:18px"></div>
+      <button class="btn btnBig" id="doneHome">🏠 Zur Startseite</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Helpers =====
+    const $ = (id)=>document.getElementById(id);
+    const show = (id)=>{
+      ["screenStart","screenGame1","screenGame2","screenDone"].forEach(s=>$(s).classList.remove("active"));
+      $(id).classList.add("active");
+    };
+    const shuffle = (a)=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+    function done(title, text){
+      $("doneTitle").textContent = title;
+      $("doneText").textContent = text;
+      show("screenDone");
+    }
+
+    // ===== Nav =====
+    $("goGame1").addEventListener("click", ()=>{game1Start(); show("screenGame1");});
+    $("goGame2").addEventListener("click", ()=>{game2Start(); show("screenGame2");});
+    $("home1").addEventListener("click", ()=>show("screenStart"));
+    $("home2").addEventListener("click", ()=>show("screenStart"));
+    $("doneHome").addEventListener("click", ()=>show("screenStart"));
+
+    // =========================
+    // GAME 1: NOMEN ODER VERB
+    // =========================
+    const DEFAULT_NOMEN = [
+      "Suppe","Brot","Apfel","Banane","Käse","Wasser","Saft","Milch","Ei","Reis",
+      "Kaktus","Blume","Baum","Gras","Stein","Sand","Erde","Blatt","Ast","Samen",
+      "Mädchen","Junge","Kind","Mann","Frau","Leute","Freund","Familie","Baby",
+      "Hund","Katze","Pferd","Vogel","Käfer","Fisch","Maus","Kuh","Schaf","Huhn",
+      "Pullover","Hose","Jacke","Schuh","Mütze","Tasche","Rock","Hemd","Socke",
+      "Ritter","Prinzessin","König","Königin","Drache","Burg","Turm","Schloss",
+      "Schwert","Schild","Krone","Ring","Helm","Rüstung",
+      "Buch","Stift","Heft","Papier","Bild","Brief","Plakat",
+      "Tisch","Stuhl","Bett","Tür","Fenster","Haus","Zimmer","Küche","Bad",
+      "Ball","Auto","Zug","Rad","Bus","Boot","Flugzeug",
+      "Straße","Weg","Platz","Brücke",
+      "Schule","Klasse","Lehrer","Kindergarten","Rucksack","Pause","Hof"
+    ];
+    const DEFAULT_VERBEN = [
+      "gehen","laufen","springen",
+      "stehen","sitzen","liegen","fallen","klettern","tragen","werfen","fangen","ziehen","drücken","schieben",
+      "essen","trinken","schlafen","sehen","hören",
+      "sprechen","sagen","rufen","fragen","lachen","weinen",
+      "lesen","schreiben","malen","spielen","lernen","üben","zählen",
+      "öffnen","schließen","helfen","suchen","finden",
+      "fliegen","fahren","schwimmen","tanzen","winken","klatschen",
+      "bauen","putzen","waschen","kochen","backen",
+      "zeigen","geben","nehmen","holen","bringen","legen","stellen"
+    ];
+
+    const g1 = {
+      card: $("g1_card"),
+      wordEl: $("g1_word"),
+      fb: $("g1_fb"),
+      dropN: $("g1_dropN"),
+      dropV: $("g1_dropV"),
+      okEl: $("g1_ok"),
+      badEl: $("g1_bad"),
+      btnN: $("g1_btnN"),
+      btnV: $("g1_btnV"),
+      pool: [],
+      current: null,
+      ok: 0,
+      bad: 0,
+      dragging:false, sx:0, sy:0
+    };
+
+    function game1Rebuild(){
+      g1.pool = [];
+      DEFAULT_NOMEN.forEach(t=>g1.pool.push({t, type:"n"}));
+      DEFAULT_VERBEN.forEach(t=>g1.pool.push({t, type:"v"}));
+      shuffle(g1.pool);
+    }
+
+    function game1UpdateScore(){
+      g1.okEl.textContent = String(g1.ok);
+      g1.badEl.textContent = String(g1.bad);
+    }
+
+    function game1SetFB(text, kind){
+      g1.fb.textContent = text || "";
+      g1.fb.className = "fb" + (kind ? (" " + kind) : "");
+    }
+
+    function game1Next(){
+      if(!g1.pool.length){
+        done("Spiel 1 fertig!", `Alle Wörter wurden gespielt. ✅ ${g1.ok}  ❌ ${g1.bad}`);
+        return;
+      }
+      g1.current = g1.pool.pop();
+      g1.wordEl.textContent = String(g1.current.t).toUpperCase();
+      game1SetFB("");
+      g1.card.style.transform = "translate(0px,0px)";
+    }
+
+    function game1Grade(choice){
+      if(!g1.current) return;
+      const right = choice === g1.current.type;
+      if(right){ g1.ok++; game1SetFB("RICHTIG ✅","good"); }
+      else{ g1.bad++; game1SetFB("FALSCH ❌","bad"); }
+      game1UpdateScore();
+      setTimeout(game1Next, 650);
+    }
+
+    // NEW: Pfeil-Buttons (Touch-Fallback)
+    g1.btnN.addEventListener("click", ()=>game1Grade("n"));
+    g1.btnV.addEventListener("click", ()=>game1Grade("v"));
+
+    const isIn = (x,y,r)=>x>=r.left && x<=r.right && y>=r.top && y<=r.bottom;
+
+    function game1Highlight(x,y){
+      const rN=g1.dropN.getBoundingClientRect(), rV=g1.dropV.getBoundingClientRect();
+      g1.dropN.classList.toggle("dragover", isIn(x,y,rN));
+      g1.dropV.classList.toggle("dragover", isIn(x,y,rV));
+    }
+    function game1Clear(){ g1.dropN.classList.remove("dragover"); g1.dropV.classList.remove("dragover"); }
+
+    function game1Start(){
+      g1.ok=0; g1.bad=0;
+      game1UpdateScore();
+      game1Rebuild();
+      game1Next();
+    }
+
+    g1.card.addEventListener("pointerdown",(e)=>{
+      if(!g1.current) return;
+      g1.dragging=true;
+      g1.card.setPointerCapture(e.pointerId);
+      g1.sx=e.clientX; g1.sy=e.clientY;
+      g1.card.style.transition="none";
+    });
+
+    g1.card.addEventListener("pointermove",(e)=>{
+      if(!g1.dragging) return;
+      const dx=e.clientX-g1.sx, dy=e.clientY-g1.sy;
+      g1.card.style.transform=`translate(${dx}px,${dy}px) rotate(${dx*0.03}deg)`;
+      game1Highlight(e.clientX,e.clientY);
+    });
+
+    g1.card.addEventListener("pointerup",(e)=>{
+      if(!g1.dragging) return;
+      g1.dragging=false;
+      g1.card.style.transition="transform .18s ease";
+      const rN=g1.dropN.getBoundingClientRect(), rV=g1.dropV.getBoundingClientRect();
+      const inN=isIn(e.clientX,e.clientY,rN), inV=isIn(e.clientX,e.clientY,rV);
+      game1Clear();
+      if(inN) game1Grade("n");
+      else if(inV) game1Grade("v");
+      else g1.card.style.transform="translate(0px,0px)";
+    });
+
+    g1.card.addEventListener("pointercancel",()=>{
+      g1.dragging=false; game1Clear(); g1.card.style.transform="translate(0px,0px)";
+    });
+
+    window.addEventListener("keydown",(e)=>{
+      if(!$("screenGame1").classList.contains("active")) return;
+      if(e.key==="ArrowLeft") game1Grade("n");
+      if(e.key==="ArrowRight") game1Grade("v");
+    });
+
+    // =========================
+    // GAME 2: SATZBAU
+    // =========================
+    const SENTENCES = [
+      ["Der","Hund","läuft"],
+      ["Die","Katze","schläft"],
+      ["Das","Kind","spielt"],
+      ["Der","Junge","springt"],
+      ["Das","Mädchen","malt"],
+      ["Der","Mann","liest"],
+      ["Die","Frau","lacht"],
+      ["Das","Baby","weint"],
+      ["Der","Vogel","fliegt"],
+      ["Der","Fisch","schwimmt"],
+      ["Die","Maus","frisst"],
+      ["Die","Kuh","frisst"],
+      ["Das","Pferd","rennt"],
+      ["Der","Bus","hält"],
+      ["Das","Auto","fährt"],
+      ["Der","Zug","kommt"],
+      ["Das","Boot","schwimmt"],
+      ["Der","Ball","rollt"],
+      ["Das","Buch","fällt"],
+      ["Die","Uhr","tickt"],
+      ["Die","Tür","knallt"],
+      ["Das","Fenster","öffnet"],
+      ["Die","Blume","wächst"],
+      ["Der","Kaktus","sticht"],
+      ["Das","Wasser","fließt"],
+      ["Die","Suppe","kocht"],
+      ["Der","Ritter","kämpft"],
+      ["Die","Prinzessin","winkt"],
+      ["Der","Drache","fliegt"],
+      ["Die","Burg","steht"]
+    ];
+
+    const g2 = {
+      bank: $("g2_bank"),
+      slots: [$("g2_slot0"),$("g2_slot1"),$("g2_slot2")],
+      fb: $("g2_fb"),
+      okEl: $("g2_ok"),
+      badEl: $("g2_bad"),
+      targetText: $("g2_targetText"),
+      checkBtn: $("g2_checkBtn"),
+      nextBtn: $("g2_nextBtn"),
+      ok:0, bad:0,
+      current:null,
+      remaining:[]
+    };
+
+    function g2SetFB(text, kind){
+      g2.fb.textContent = text || "";
+      g2.fb.className = "fb" + (kind ? (" " + kind) : "");
+    }
+    function g2UpdateScore(){
+      g2.okEl.textContent=String(g2.ok);
+      g2.badEl.textContent=String(g2.bad);
+    }
+
+    function g2Symbol(type){
+      if(type==="A") return `<span class="sym triBlue" aria-hidden="true"></span>`;
+      if(type==="N") return `<span class="sym triBlack" aria-hidden="true"></span>`;
+      return `<span class="sym cirRed" aria-hidden="true"></span>`;
+    }
+
+    let g2DraggedId = null;
+
+    function g2MakeToken({id,type,text}){
+      const div=document.createElement("div");
+      div.className="token";
+      div.draggable=true;
+      div.dataset.id=id;
+      div.dataset.type=type;
+      div.dataset.text=text;
+      div.innerHTML = g2Symbol(type) + `<span>${text}</span>`;
+
+      div.addEventListener("dragstart",(e)=>{
+        g2DraggedId=id;
+        e.dataTransfer.setData("text/plain", id);
+      });
+
+      div.addEventListener("click", ()=>{
+        const free = g2.slots.find(s => !s.firstElementChild);
+        if(free) free.appendChild(div);
+      });
+
+      return div;
+    }
+
+    function g2ClearToBank(){
+      g2.slots.forEach(s=>{
+        if(s.firstElementChild) g2.bank.appendChild(s.firstElementChild);
+        s.classList.remove("dragover");
+      });
+    }
+
+    function g2PickNext(){
+      if(!g2.remaining.length){
+        done("Spiel 2 fertig!", `Alle Sätze wurden gespielt. ✅ ${g2.ok}  ❌ ${g2.bad}`);
+        return;
+      }
+      g2SetFB("");
+      g2.bank.innerHTML="";
+      g2.slots.forEach(s=>{s.innerHTML=""; s.classList.remove("dragover");});
+
+      const pick = g2.remaining.pop();
+      g2.current = {A:pick[0], N:pick[1], V:pick[2]};
+      g2.targetText.textContent = "Baue den Satz.";
+
+      const cards = shuffle([
+        {id:"tA", type:"A", text:g2.current.A},
+        {id:"tN", type:"N", text:g2.current.N},
+        {id:"tV", type:"V", text:g2.current.V}
+      ]);
+      cards.forEach(c=>g2.bank.appendChild(g2MakeToken(c)));
+    }
+
+    function game2Start(){
+      g2.ok=0; g2.bad=0;
+      g2UpdateScore();
+      g2.remaining = shuffle([...SENTENCES]);
+      g2PickNext();
+    }
+
+    g2.slots.forEach((slot)=>{
+      slot.addEventListener("dragover",(e)=>{e.preventDefault(); slot.classList.add("dragover");});
+      slot.addEventListener("dragleave",()=>slot.classList.remove("dragover"));
+      slot.addEventListener("drop",(e)=>{
+        e.preventDefault();
+        slot.classList.remove("dragover");
+        const id = e.dataTransfer.getData("text/plain") || g2DraggedId;
+        if(!id) return;
+        const el = document.querySelector(`.token[data-id="${id}"]`);
+        if(!el) return;
+        if(slot.firstElementChild) g2.bank.appendChild(slot.firstElementChild);
+        slot.appendChild(el);
+      });
+    });
+
+    function g2GetSlots(){
+      return g2.slots.map(s => s.firstElementChild ? s.firstElementChild.dataset.text : null);
+    }
+
+    function g2Check(){
+      const arr = g2GetSlots();
+      if(arr.some(x=>x===null)){ g2SetFB("Noch nicht fertig.","bad"); return; }
+      const right = (arr[0]===g2.current.A && arr[1]===g2.current.N && arr[2]===g2.current.V);
+      if(right){ g2.ok++; g2SetFB("RICHTIG ✅","good"); }
+      else{ g2.bad++; g2SetFB("FALSCH ❌","bad"); }
+      g2UpdateScore();
+    }
+
+    g2.checkBtn.addEventListener("click", g2Check);
+    g2.nextBtn.addEventListener("click", ()=>{ g2ClearToBank(); g2PickNext(); });
+  </script>
 </body>
 </html>
